@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9f43"/>
+      <stop offset="1" stop-color="#ff5f8d"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="24" fill="url(#g)"/>
+  <circle cx="50" cy="46" r="26" fill="#ffd9a8" stroke="#7a2e1f" stroke-opacity="0.35" stroke-width="3"/>
+  <ellipse cx="50" cy="30" rx="26.8" ry="16" fill="#5a3a26"/>
+  <ellipse cx="40" cy="47" rx="5.2" ry="6.2" fill="#fff"/>
+  <ellipse cx="60" cy="47" rx="5.2" ry="6.2" fill="#fff"/>
+  <circle cx="41" cy="48" r="2.6" fill="#20242e"/>
+  <circle cx="61" cy="48" r="2.6" fill="#20242e"/>
+  <circle cx="34" cy="54" r="3.6" fill="#ff9f9f" opacity="0.65"/>
+  <circle cx="66" cy="54" r="3.6" fill="#ff9f9f" opacity="0.65"/>
+  <path d="M 39 56 Q 50 65 61 56" fill="none" stroke="#7d3b3b" stroke-width="3" stroke-linecap="round"/>
+  <rect x="16" y="82" width="68" height="9" rx="3" fill="#20242e"/>
+  <path d="M20 82h6l-3 9h-6zM33 82h6l-3 9h-6zM46 82h6l-3 9h-6zM59 82h6l-3 9h-6zM72 82h6l-3 9h-6z" fill="#fff" opacity="0.9"/>
+</svg>

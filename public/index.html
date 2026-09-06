@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>SNM Cartoon Maker</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0f1115" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SNM Toon" />
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel-2: #1e222b;
+        --border: #2a2f3a;
+        --text: #e7ebf0;
+        --muted: #9aa4b2;
+        --accent: #ff9f43;
+        --accent-2: #ff5f8d;
+        --danger: #ff6b6b;
+        --ok: #37d67a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+        background: radial-gradient(1200px 600px at 50% -10%, #2a1c2e, var(--bg));
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+      header { text-align: center; margin-bottom: 26px; }
+      .logo {
+        display: inline-flex; align-items: center; gap: 10px;
+        font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+      }
+      .logo .dot {
+        width: 34px; height: 34px; border-radius: 10px; display: block;
+        filter: drop-shadow(0 4px 12px rgba(255, 95, 141, 0.4));
+      }
+      .tag { color: var(--muted); margin-top: 8px; font-size: 14px; }
+      .card {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 16px; padding: 18px; margin-bottom: 16px;
+      }
+      label.field { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+      textarea, input[type="text"], select {
+        width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+        color: var(--text); border-radius: 10px; padding: 13px;
+        font-size: 15px; outline: none; font-family: inherit; resize: vertical;
+      }
+      textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+      button {
+        border: none; cursor: pointer; border-radius: 10px; font-size: 15px;
+        font-weight: 600; padding: 14px 18px; color: #23160b;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        transition: transform 0.05s ease, opacity 0.2s ease;
+      }
+      button:hover { opacity: 0.92; }
+      button:active { transform: translateY(1px); }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+      .seg button {
+        background: transparent; color: var(--muted); border-radius: 0;
+        padding: 10px 15px; font-size: 13px; font-weight: 500;
+      }
+      .seg button.active { background: var(--accent); color: #23160b; font-weight: 600; }
+      .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; }
+      .style {
+        border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+        border-radius: 10px; padding: 11px 8px; font-size: 12.5px; cursor: pointer;
+        text-align: center; transition: all 0.15s ease;
+      }
+      .style:hover { border-color: #444b5a; color: var(--text); }
+      .style.active { border-color: var(--accent); background: rgba(255, 159, 67, 0.12); color: var(--text); font-weight: 600; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+      .row { display: flex; gap: 10px; align-items: center; }
+      .hint { color: var(--muted); font-size: 12.5px; margin-top: 10px; line-height: 1.5; }
+      .switch { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
+      .switch input { width: 17px; height: 17px; accent-color: var(--accent); }
+      input[type="range"] { width: 100%; accent-color: var(--accent); }
+      .bar { height: 7px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin: 14px 0 10px; }
+      .bar span { display: block; height: 100%; width: 0; border-radius: 99px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.4s ease; }
+      .stages { list-style: none; padding: 0; margin: 14px 0 0; font-size: 13.5px; }
+      .stages li { padding: 6px 0; color: #5c6472; display: flex; align-items: center; gap: 9px; }
+      .stages li.active { color: var(--text); }
+      .stages li.done { color: var(--ok); }
+      .stages .mark { width: 16px; text-align: center; }
+      .spinner {
+        display: inline-block; width: 12px; height: 12px;
+        border: 2px solid var(--border); border-top-color: var(--accent);
+        border-radius: 50%; animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 4px; }
+      .thumbs img { height: 66px; border-radius: 7px; border: 1px solid var(--border); flex: none; }
+      video { width: 100%; border-radius: 12px; background: #000; display: block; }
+      .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+      .pill {
+        display: inline-block; background: var(--panel-2); border: 1px solid var(--border);
+        color: var(--muted); font-size: 11px; padding: 3px 9px; border-radius: 999px; margin-right: 6px;
+      }
+      .err { color: var(--danger); font-size: 14px; margin-top: 12px; }
+      .note {
+        background: rgba(255, 159, 67, 0.08); border: 1px solid rgba(255, 159, 67, 0.28);
+        border-radius: 10px; padding: 11px 13px; font-size: 12.5px; color: #f3c896; line-height: 1.55;
+      }
+      code { background: var(--panel-2); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+      footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 26px; }
+      h2 { font-size: 15px; margin: 0 0 13px; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="logo"><img class="dot" src="logo.svg" alt="" width="34" height="34" /> SNM Cartoon Maker</div>
+        <div class="tag">Describe your video. Get back a narrated, scored cartoon — script, characters, animation and all.</div>
+      </header>
+
+      <div id="setup">
+        <div class="card">
+          <div class="seg" id="inputMode" style="margin-bottom: 14px">
+            <button data-mode="idea" class="active">Describe an idea</button>
+            <button data-mode="script">Paste a script</button>
+          </div>
+          <div id="ideaBox">
+            <label class="field" for="idea">What should the video be about?</label>
+            <textarea id="idea" rows="3" placeholder="A curious young inventor builds a robot friend who is scared of the rain."></textarea>
+          </div>
+          <div id="scriptBox" style="display: none">
+            <label class="field" for="script">Your script</label>
+            <textarea id="script" rows="7" placeholder="Paste your full script. Each paragraph becomes a scene."></textarea>
+          </div>
+          <div id="authoredNote" class="hint"></div>
+        </div>
+
+        <div class="card">
+          <h2>Visual style</h2>
+          <div class="styles" id="styles"></div>
+        </div>
+
+        <div class="card">
+          <h2>Voice &amp; length</h2>
+          <div class="grid">
+            <div>
+              <label class="field" for="minutes">Length — <span id="minutesLabel">1.0 min</span></label>
+              <input type="range" id="minutes" min="0.5" max="5" step="0.5" value="1" />
+            </div>
+            <div>
+              <label class="field" for="voice">Narrator voice</label>
+              <select id="voice"></select>
+            </div>
+            <div>
+              <label class="field" for="language">Language</label>
+              <input type="text" id="language" value="English" spellcheck="false" />
+            </div>
+            <div>
+              <label class="field" for="tone">Tone</label>
+              <input type="text" id="tone" value="friendly and clear" />
+            </div>
+          </div>
+          <div style="margin-top: 15px">
+            <label class="switch"><input type="checkbox" id="captions" checked /> Burn in captions</label>
+          </div>
+        </div>
+
+        <button id="go" style="width: 100%; padding: 16px; font-size: 16px">Create my cartoon</button>
+        <div id="setupErr" class="err"></div>
+      </div>
+
+      <div id="progressCard" class="card" style="display: none">
+        <h2 id="progressTitle">Making your film…</h2>
+        <div class="bar"><span id="bar"></span></div>
+        <div class="hint" id="detail" style="margin: 0"></div>
+        <ul class="stages" id="stages"></ul>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <div id="resultCard" class="card" style="display: none">
+        <video id="player" controls playsinline></video>
+        <div class="meta">
+          <div id="filmTitle" style="color: var(--text); font-size: 16px; font-weight: 600; margin-bottom: 6px"></div>
+          <div id="filmLogline" style="margin-bottom: 10px"></div>
+          <div id="filmPills"></div>
+        </div>
+        <div class="row" style="margin-top: 15px">
+          <button id="download" style="flex: 1">Download MP4</button>
+          <button id="again" style="flex: 1; background: var(--panel-2); color: var(--text)">Make another</button>
+        </div>
+      </div>
+
+      <footer>The script, characters, artwork, voice and music are generated for you — the film is yours to use.</footer>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const STAGE_ORDER = ["script", "cast", "storyboard", "frames", "voice", "music", "render"];
+      let config = null;
+      let mode = "idea";
+      let style = null;
+      let jobId = null;
+      let seenFrames = 0;
+
+      async function loadConfig() {
+        config = await (await fetch("/api/config")).json();
+
+        $("styles").innerHTML = "";
+        config.styles.forEach((s, i) => {
+          const el = document.createElement("div");
+          el.className = "style" + (i === 0 ? " active" : "");
+          el.textContent = s.name;
+          el.dataset.id = s.id;
+          el.addEventListener("click", () => {
+            style = s.id;
+            document.querySelectorAll(".style").forEach((x) => x.classList.toggle("active", x === el));
+          });
+          $("styles").appendChild(el);
+          if (i === 0) style = s.id;
+        });
+
+        $("voice").innerHTML = config.voices
+          .map((v) => `<option value="${v}">${v[0].toUpperCase() + v.slice(1)}</option>`)
+          .join("");
+
+        $("authoredNote").innerHTML = config.authored
+          ? "Claude writes the screenplay, designs the cast and boards every shot."
+          : '<div class="note"><b>Draft mode.</b> No <code>ANTHROPIC_API_KEY</code> is set, so your text is split into scenes as written instead of being developed into a screenplay. Everything else — art, voice, music, editing — still runs. Set the key and restart for authored scripts.</div>';
+      }
+
+      function renderStages(current, doneUpTo) {
+        const labels = {
+          script: "Script & scene breakdown",
+          cast: "Character design",
+          storyboard: "Storyboard",
+          frames: "Scene artwork",
+          voice: "Narration",
+          music: "Original score",
+          render: "Animation & mix",
+        };
+        $("stages").innerHTML = STAGE_ORDER.map((id) => {
+          const i = STAGE_ORDER.indexOf(id);
+          const state = i < doneUpTo ? "done" : i === doneUpTo ? "active" : "";
+          const mark = state === "done" ? "✓" : state === "active" ? '<span class="spinner"></span>' : "○";
+          return `<li class="${state}"><span class="mark">${mark}</span>${labels[id]}</li>`;
+        }).join("");
+      }
+
+      function pollFrames() {
+        if (!jobId) return;
+        const img = new Image();
+        img.onload = () => {
+          const el = document.createElement("img");
+          el.src = img.src;
+          $("thumbs").appendChild(el);
+          $("thumbs").scrollLeft = $("thumbs").scrollWidth;
+          seenFrames++;
+        };
+        img.src = `/api/frame/${jobId}/${seenFrames}`;
+      }
+
+      async function create() {
+        const idea = $("idea").value.trim();
+        const script = $("script").value.trim();
+        if (mode === "idea" && !idea) return ($("setupErr").textContent = "Describe your video first.");
+        if (mode === "script" && !script) return ($("setupErr").textContent = "Paste a script first.");
+        $("setupErr").textContent = "";
+
+        const body = {
+          idea: mode === "idea" ? idea : "",
+          script: mode === "script" ? script : "",
+          minutes: parseFloat($("minutes").value),
+          style,
+          language: $("language").value.trim() || "English",
+          tone: $("tone").value.trim() || "friendly and clear",
+          voice: $("voice").value,
+          captions: $("captions").checked,
+        };
+
+        const res = await fetch("/api/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) return ($("setupErr").textContent = data.error || "Could not start.");
+
+        jobId = data.id;
+        seenFrames = 0;
+        $("setup").style.display = "none";
+        $("resultCard").style.display = "none";
+        $("progressCard").style.display = "";
+        $("thumbs").innerHTML = "";
+        renderStages("script", 0);
+
+        const frameTimer = setInterval(pollFrames, 1200);
+        const es = new EventSource(`/api/events/${jobId}`);
+
+        es.onmessage = (e) => {
+          const ev = JSON.parse(e.data);
+          if (ev.type === "progress") {
+            $("bar").style.width = ev.percent + "%";
+            $("detail").textContent = ev.detail ? `${ev.label} — ${ev.detail}` : ev.label;
+            renderStages(ev.stage, STAGE_ORDER.indexOf(ev.stage));
+          } else if (ev.type === "story") {
+            $("progressTitle").textContent = ev.title || "Making your film…";
+          } else if (ev.type === "done") {
+            clearInterval(frameTimer);
+            es.close();
+            showResult(ev);
+          } else if (ev.type === "error") {
+            clearInterval(frameTimer);
+            es.close();
+            $("progressCard").style.display = "none";
+            $("setup").style.display = "";
+            $("setupErr").textContent = ev.error;
+          }
+        };
+        es.onerror = () => {
+          clearInterval(frameTimer);
+          es.close();
+        };
+      }
+
+      function showResult(r) {
+        $("progressCard").style.display = "none";
+        $("resultCard").style.display = "";
+        $("player").src = `/api/video/${jobId}`;
+        $("filmTitle").textContent = r.title || "Your cartoon";
+        $("filmLogline").textContent = r.logline || "";
+        const mins = Math.floor(r.duration / 60);
+        const secs = Math.round(r.duration % 60);
+        $("filmPills").innerHTML = [
+          `${mins}:${String(secs).padStart(2, "0")}`,
+          `${r.sceneCount} scene${r.sceneCount === 1 ? "" : "s"}`,
+          `${r.characters} character${r.characters === 1 ? "" : "s"}`,
+          r.style,
+          r.authored ? "authored script" : "draft mode",
+        ]
+          .map((p) => `<span class="pill">${p}</span>`)
+          .join("");
+      }
+
+      $("go").addEventListener("click", () => {
+        $("go").disabled = true;
+        create().finally(() => ($("go").disabled = false));
+      });
+      $("download").addEventListener("click", () => {
+        window.location = `/api/video/${jobId}?download=1`;
+      });
+      $("again").addEventListener("click", () => {
+        $("resultCard").style.display = "none";
+        $("setup").style.display = "";
+      });
+      $("minutes").addEventListener("input", (e) => {
+        $("minutesLabel").textContent = parseFloat(e.target.value).toFixed(1) + " min";
+      });
+      document.querySelectorAll("#inputMode button").forEach((b) => {
+        b.addEventListener("click", () => {
+          mode = b.dataset.mode;
+          document.querySelectorAll("#inputMode button").forEach((x) => x.classList.toggle("active", x === b));
+          $("ideaBox").style.display = mode === "idea" ? "" : "none";
+          $("scriptBox").style.display = mode === "script" ? "" : "none";
+        });
+      });
+
+      loadConfig();
+
+      // Register the service worker so the app is installable on mobile/desktop.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () =>
+          navigator.serviceWorker.register("sw.js").catch(() => {})
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+{
+  "name": "snm-cartoon-maker",
+  "productName": "SNM Cartoon Maker",
+  "version": "1.0.0",
+  "description": "Turn a text prompt into a narrated, scored cartoon video — script, characters, storyboard, animation, voice and music.",
+  "author": "Asif Niaz",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "web": "node server.js",
+    "start": "electron .",
+    "test": "node test/authored.test.mjs",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0",
+    "express": "^4.22.2"
+  },
+  "devDependencies": {
+    "electron": "^32.3.3",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.asifniaz.snmcartoonmaker",
+    "productName": "SNM Cartoon Maker",
+    "asar": false,
+    "files": [
+      "electron/**/*",
+      "engine/**/*",
+      "public/**/*",
+      "server.js"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "build/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "extraResources": [
+        {
+          "from": "../bin/mac",
+          "to": "bin",
+          "filter": [
+            "ffmpeg",
+            "ffprobe"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis"
+      ],
+      "extraResources": [
+        {
+          "from": "../bin/win",
+          "to": "bin",
+          "filter": [
+            "ffmpeg.exe",
+            "ffprobe.exe"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "allowScripts": {
+    "electron@32.3.3": true
+  }
+}
