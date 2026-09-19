@@ -90,32 +90,93 @@ function srtTime(seconds) {
   return `${h}:${m}:${s},${String(ms % 1000).padStart(3, "0")}`;
 }
 
+// Split a cue's words into lines short enough to not fill the frame, each line
+// keeping the words it covers so both the plain and karaoke builders can reuse it.
+function chunkCue(text, maxLen = 42) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (!clean) return [];
+  const words = clean.split(" ");
+  const chunks = [];
+  let cur = [];
+  for (const w of words) {
+    cur.push(w);
+    if (cur.join(" ").length >= maxLen) {
+      chunks.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) chunks.push(cur);
+  return chunks;
+}
+
 // One caption cue per narration line, split so a long line does not fill the frame.
 function buildSRT(cues) {
   const out = [];
   let n = 1;
   for (const { start, duration, text } of cues) {
-    const clean = String(text || "").replace(/\s+/g, " ").trim();
-    if (!clean) continue;
-    const words = clean.split(" ");
-    const chunks = [];
-    let cur = [];
-    for (const w of words) {
-      cur.push(w);
-      if (cur.join(" ").length >= 42) {
-        chunks.push(cur.join(" "));
-        cur = [];
-      }
-    }
-    if (cur.length) chunks.push(cur.join(" "));
+    const chunks = chunkCue(text);
+    if (!chunks.length) continue;
     const per = duration / chunks.length;
     chunks.forEach((chunk, i) => {
       out.push(
-        `${n++}\n${srtTime(start + i * per)} --> ${srtTime(start + (i + 1) * per)}\n${chunk}\n`
+        `${n++}\n${srtTime(start + i * per)} --> ${srtTime(start + (i + 1) * per)}\n${chunk.join(" ")}\n`
       );
     });
   }
   return out.join("\n");
+}
+
+function assTime(seconds) {
+  const cs = Math.max(0, Math.round(seconds * 100));
+  const h = Math.floor(cs / 360000);
+  const m = Math.floor((cs % 360000) / 6000);
+  const s = Math.floor((cs % 6000) / 100);
+  const c = cs % 100;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(c).padStart(2, "0")}`;
+}
+
+const ASS_HEADER = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Karaoke,Arial,22,&H00FFFFFF,&H0000D7FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,42,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
+
+// Each word gets a slice of the line's duration weighted by its length, so libass's
+// native \k karaoke fill tracks along with the estimated speaking pace instead of
+// highlighting the whole line at once.
+function karaokeLine(words) {
+  const weights = words.map((w) => w.length + 1);
+  const total = weights.reduce((a, b) => a + b, 0);
+  return (duration) =>
+    words
+      .map((w, i) => `{\\k${Math.max(1, Math.round((weights[i] / total) * duration * 100))}}${w}`)
+      .join(" ");
+}
+
+// Word-highlighted "karaoke" captions, burned in via ffmpeg's built-in libass
+// support for the ASS \k tag — no separate speech-alignment step required.
+export function buildASS(cues) {
+  const events = [];
+  for (const { start, duration, text } of cues) {
+    const chunks = chunkCue(text).map((words) => words.filter((w) => !/[{}]/.test(w)));
+    if (!chunks.length) continue;
+    const per = duration / chunks.length;
+    chunks.forEach((words, i) => {
+      const line = karaokeLine(words)(per);
+      events.push(
+        `Dialogue: 0,${assTime(start + i * per)},${assTime(start + (i + 1) * per)},Karaoke,,0,0,0,,${line}`
+      );
+    });
+  }
+  return ASS_HEADER + events.join("\n") + "\n";
 }
 
 export async function renderFilm({
@@ -124,6 +185,7 @@ export async function renderFilm({
   narrations,
   musicFile,
   captions = true,
+  captionStyle = "plain",
   out,
   onProgress = () => {},
 }) {
@@ -154,8 +216,10 @@ export async function renderFilm({
     duration: Math.max(0.8, nar.duration),
     text: frames[i]?.caption || "",
   }));
+  const karaoke = captionStyle === "karaoke";
+  const captionFile = karaoke ? "captions.ass" : "captions.srt";
   if (captions) {
-    await writeFile(path.join(workdir, "captions.srt"), buildSRT(cues), "utf8");
+    await writeFile(path.join(workdir, captionFile), karaoke ? buildASS(cues) : buildSRT(cues), "utf8");
   }
 
   // narration inputs, then the score
@@ -184,10 +248,14 @@ export async function renderFilm({
   );
   filters.push(`[nar][duck]amix=inputs=2:normalize=0[aout]`);
 
+  // The karaoke style carries its own ASS style block, so only the plain SRT
+  // style needs the force_style override.
   const videoFilter = captions
     ? [
         "-filter:v",
-        "subtitles=captions.srt:force_style='FontName=Arial,Fontsize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=42'",
+        karaoke
+          ? `subtitles=${captionFile}`
+          : `subtitles=${captionFile}:force_style='FontName=Arial,Fontsize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=42'`,
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
       ]
     : ["-c:v", "copy"];

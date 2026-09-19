@@ -77,6 +77,7 @@ app.post("/api/create", async (req, res) => {
     tone: String(req.body?.tone || "friendly and clear"),
     voice: String(req.body?.voice || "warm"),
     captions: req.body?.captions !== false,
+    captionStyle: req.body?.captionStyle === "karaoke" ? "karaoke" : "plain",
     workdir,
   };
 

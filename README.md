@@ -109,6 +109,12 @@ Visual style (12 presets), length up to 5 minutes, narrator voice, language, ton
 whether captions are burned in. Switching style regenerates every scene in the new look
 while keeping the story and the cast identical.
 
+Captions have two styles: **plain** (one static line per phrase) and **karaoke** (each
+word highlights as it's estimated to be spoken). Karaoke captions are ASS subtitles with
+libass `\k` tags — ffmpeg burns them in the same way as plain captions, no extra
+dependency or speech-alignment step. Word timing within a line is estimated from word
+length rather than measured, so it is a pace approximation, not a forced alignment.
+
 ## Notes
 
 - Nothing is uploaded anywhere. Frames, audio and the finished film are written to a temp

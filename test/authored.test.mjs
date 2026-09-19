@@ -12,6 +12,7 @@ process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${port}`;
 
 const { hasCredentials, developStory, castCharacters, storyboard } = await import("../engine/claude.js");
 const { runWizard } = await import("../engine/wizard.js");
+const { buildASS } = await import("../engine/render.js");
 
 let failures = 0;
 function ok(condition, label, extra = "") {
@@ -39,6 +40,14 @@ ok(shots[3].characters.length === 2, "stage 3 composes a multi-character shot");
 ok(shots.every((s) => s.characters.every((c) => sheets[c.id])), "stage 3 only places characters that exist");
 const byIndex = new Map(shots.map((s) => [Number(s.index), s]));
 ok(story.scenes.every((_, i) => byIndex.has(i)), "shot indices line up with scenes");
+
+console.log("\nkaraoke captions");
+const ass = buildASS([{ start: 0, duration: 2, text: "hello there whale" }]);
+ok(ass.startsWith("[Script Info]"), "ASS file opens with a script header");
+ok(ass.includes("Style: Karaoke"), "defines a karaoke style");
+ok(/Dialogue: 0,0:00:00\.00,0:00:02\.00,Karaoke,,0,0,0,,/.test(ass), "one dialogue line spanning the cue");
+ok((ass.match(/\{\\k\d+\}/g) || []).length === 3, "each word gets its own \\k timing tag");
+ok(buildASS([{ start: 0, duration: 1, text: "" }]) === buildASS([]), "an empty cue emits no dialogue line");
 
 console.log("\nfull film, authored end to end");
 const workdir = await mkdtemp(path.join(tmpdir(), "snm-test-"));
