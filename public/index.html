@@ -167,6 +167,10 @@
           </div>
           <div style="margin-top: 15px">
             <label class="switch"><input type="checkbox" id="captions" checked /> Burn in captions</label>
+            <select id="captionStyle" style="margin-left: 10px">
+              <option value="plain">Plain captions</option>
+              <option value="karaoke">Karaoke word highlight</option>
+            </select>
           </div>
         </div>
 
@@ -280,6 +284,7 @@
           tone: $("tone").value.trim() || "friendly and clear",
           voice: $("voice").value,
           captions: $("captions").checked,
+          captionStyle: $("captionStyle").value,
         };
 
         const res = await fetch("/api/create", {
