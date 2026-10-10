@@ -12,6 +12,7 @@ process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${port}`;
 
 const { hasCredentials, developStory, castCharacters, storyboard } = await import("../engine/claude.js");
 const { runWizard } = await import("../engine/wizard.js");
+const { buildASS } = await import("../engine/captions.js");
 
 let failures = 0;
 function ok(condition, label, extra = "") {
@@ -40,12 +41,27 @@ ok(shots.every((s) => s.characters.every((c) => sheets[c.id])), "stage 3 only pl
 const byIndex = new Map(shots.map((s) => [Number(s.index), s]));
 ok(story.scenes.every((_, i) => byIndex.has(i)), "shot indices line up with scenes");
 
+console.log("\nkaraoke captions");
+const ass = buildASS([{ start: 0, duration: 2, text: "hello there world" }], { width: 1280, height: 720 });
+ok(ass.includes("[V4+ Styles]"), "ass file carries a style section");
+ok(/\\kf\d+\}hello/.test(ass), "each word gets its own karaoke-fill tag");
+ok(ass.split("Dialogue:").length - 1 === 1, "one dialogue event for a line this short");
+
 console.log("\nfull film, authored end to end");
 const workdir = await mkdtemp(path.join(tmpdir(), "snm-test-"));
 const notices = [];
 try {
   const film = await runWizard(
-    { idea: "a lighthouse keeper and a lost whale", minutes: 1, style: "storybook", language: "English", voice: "dramatic", captions: true, workdir },
+    {
+      idea: "a lighthouse keeper and a lost whale",
+      minutes: 1,
+      style: "storybook",
+      language: "English",
+      voice: "dramatic",
+      captions: true,
+      captionStyle: "karaoke",
+      workdir,
+    },
     (e) => e.type === "notice" && notices.push(e.message)
   );
   ok(film.authored === true, "ran authored, with no silent fallback");

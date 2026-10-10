@@ -43,6 +43,7 @@ export async function runWizard(options, emit = () => {}) {
     tone = "friendly and clear",
     voice = "warm",
     captions = true,
+    captionStyle = "line",
     workdir,
   } = options;
 
@@ -157,6 +158,7 @@ export async function runWizard(options, emit = () => {}) {
     narrations,
     musicFile,
     captions,
+    captionStyle,
     out,
     onProgress: (done, total) => progress("render", `Rendering scene ${done} of ${total}`, done / (total + 2)),
   });
