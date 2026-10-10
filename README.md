@@ -47,6 +47,7 @@ engine/images.js       picks between an external image service and the built-in 
 engine/voice.js        stage 5 — narration
 engine/music.js        stage 6 — the score, synthesized sample by sample
 engine/render.js       stage 7 — ffmpeg: Ken Burns, transitions, ducking, captions
+engine/captions.js     caption text: plain SRT lines, or word-by-word karaoke ASS
 engine/styles.js       the visual style presets
 public/index.html      the UI (installable PWA: manifest, service worker, icons)
 electron/main.cjs      desktop shell
@@ -108,6 +109,13 @@ Everything runs with no configuration at all. Each key below upgrades one stage.
 Visual style (12 presets), length up to 5 minutes, narrator voice, language, tone, and
 whether captions are burned in. Switching style regenerates every scene in the new look
 while keeping the story and the cast identical.
+
+Captions have two styles: plain lines (default), or **karaoke** — each word highlights
+gold as it's spoken, like short-form caption tools do. Since none of the TTS backends
+hand back real per-word timestamps, the fill timing is estimated from word length, the
+same estimate the silent-fallback narration already uses to size its track. Pick it with
+the "Highlight each word as it's spoken" switch, or pass `captionStyle: "karaoke"` to
+`/api/create`.
 
 ## Notes
 

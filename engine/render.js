@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ffmpeg } from "./ffmpeg.js";
+import { buildSRT, buildASS } from "./captions.js";
 
 // Turns still storyboard frames plus audio into a finished film: camera motion on
 // every frame, a transition between every scene, narration mixed over a score that
@@ -82,48 +83,13 @@ async function joinClips(clips, durations, out) {
   return durations.reduce((a, b) => a + b, 0) - TRANSITION * (clips.length - 1);
 }
 
-function srtTime(seconds) {
-  const ms = Math.max(0, Math.round(seconds * 1000));
-  const h = String(Math.floor(ms / 3600000)).padStart(2, "0");
-  const m = String(Math.floor((ms % 3600000) / 60000)).padStart(2, "0");
-  const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, "0");
-  return `${h}:${m}:${s},${String(ms % 1000).padStart(3, "0")}`;
-}
-
-// One caption cue per narration line, split so a long line does not fill the frame.
-function buildSRT(cues) {
-  const out = [];
-  let n = 1;
-  for (const { start, duration, text } of cues) {
-    const clean = String(text || "").replace(/\s+/g, " ").trim();
-    if (!clean) continue;
-    const words = clean.split(" ");
-    const chunks = [];
-    let cur = [];
-    for (const w of words) {
-      cur.push(w);
-      if (cur.join(" ").length >= 42) {
-        chunks.push(cur.join(" "));
-        cur = [];
-      }
-    }
-    if (cur.length) chunks.push(cur.join(" "));
-    const per = duration / chunks.length;
-    chunks.forEach((chunk, i) => {
-      out.push(
-        `${n++}\n${srtTime(start + i * per)} --> ${srtTime(start + (i + 1) * per)}\n${chunk}\n`
-      );
-    });
-  }
-  return out.join("\n");
-}
-
 export async function renderFilm({
   workdir,
   frames,
   narrations,
   musicFile,
   captions = true,
+  captionStyle = "line",
   out,
   onProgress = () => {},
 }) {
@@ -154,8 +120,13 @@ export async function renderFilm({
     duration: Math.max(0.8, nar.duration),
     text: frames[i]?.caption || "",
   }));
+  const karaoke = captions && captionStyle === "karaoke";
   if (captions) {
-    await writeFile(path.join(workdir, "captions.srt"), buildSRT(cues), "utf8");
+    if (karaoke) {
+      await writeFile(path.join(workdir, "captions.ass"), buildASS(cues, { width: OUT_W, height: OUT_H }), "utf8");
+    } else {
+      await writeFile(path.join(workdir, "captions.srt"), buildSRT(cues), "utf8");
+    }
   }
 
   // narration inputs, then the score
@@ -184,10 +155,14 @@ export async function renderFilm({
   );
   filters.push(`[nar][duck]amix=inputs=2:normalize=0[aout]`);
 
+  // The karaoke track carries its own ASS style (word fill colors), so it skips
+  // force_style — applying one would override the per-word highlight colors too.
   const videoFilter = captions
     ? [
         "-filter:v",
-        "subtitles=captions.srt:force_style='FontName=Arial,Fontsize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=42'",
+        karaoke
+          ? "subtitles=captions.ass"
+          : "subtitles=captions.srt:force_style='FontName=Arial,Fontsize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=42'",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
       ]
     : ["-c:v", "copy"];

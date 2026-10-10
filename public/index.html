@@ -168,6 +168,9 @@
           <div style="margin-top: 15px">
             <label class="switch"><input type="checkbox" id="captions" checked /> Burn in captions</label>
           </div>
+          <div style="margin-top: 10px">
+            <label class="switch"><input type="checkbox" id="karaoke" /> Highlight each word as it's spoken</label>
+          </div>
         </div>
 
         <button id="go" style="width: 100%; padding: 16px; font-size: 16px">Create my cartoon</button>
@@ -280,6 +283,7 @@
           tone: $("tone").value.trim() || "friendly and clear",
           voice: $("voice").value,
           captions: $("captions").checked,
+          captionStyle: $("karaoke").checked ? "karaoke" : "line",
         };
 
         const res = await fetch("/api/create", {
